@@ -42,7 +42,7 @@
 ### 方式一：一键启动（推荐）
 
 ```bash
-git clone https://github.com/<你的用户名>/CalcEclipses.git
+git clone https://github.com/ayoblock/CalcEclipses.git
 cd CalcEclipses
 ./run.sh          # Linux / macOS
 ```
