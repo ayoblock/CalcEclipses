@@ -102,3 +102,34 @@ CalcEclipses/
 - Playwright（本地静态服务）：逐朝载入、点降级条目、查
   `cesium-widget-errorPanel` 与 pageerror；截图确认影带/中心线/标记齐全。
   参考脚本 `tmp/verify_ui.py`（详情容器是 `#detail` 不是 `.detail`）。
+
+## 六、发布流程规范（重要）
+
+- **迭代期间只做本地提交，不推送远端**。每一轮修复、增删、微调后 `git commit` 到本地即可，
+  不执行 `git push`——远端 `origin/main` 应始终保持为「已测试定稿的稳定版本」。
+- **只有测试完善并确认定稿后才推送发布**。推送须同时满足：
+  ① 质量门通过（`node --check` + `check_band_selfint.py` 全朝 0 自交）；
+  ② Playwright 回归通过（errorPanel / pageerror = 0，改动所涉朝代逐条抽查，含降级条目与截图确认）；
+  ③ 作者明确认可为定稿版本。
+- 发布节奏以「定稿批次」为单位，不以「修改轮次」为单位；**切忌每改一处就 push 一次**。
+
+## 七、Release 打包（定稿批次才执行）
+
+- **定位**：Release 是「定稿里程碑」的正式快照，只随定稿批次发、不随迭代发。
+  GitHub 自动生成的 Source code zip 不含 Cesium（被 gitignore），增量价值低；
+  真正有用的是脚本打出的**完整包**（源码 + 本地 Cesium 1.120 + 第三方许可，约 9MB，
+  下载解压即用、免 npm、可离线）——面向不会 `git clone` 的科普受众。
+- **命令**（幂等，同名覆盖，产物在 `tmp/release/` 不入库）：
+  ```bash
+  python3 tools/pack_release.py v1.0.0     # 版本须为 vX.Y.Z；省略时尝试读 git tag
+  ```
+  前置：`lib/cesium/Cesium.js` 须存在（先跑 `tools/fetch_cesium.sh`），
+  `docs/licenses/Cesium-1.120-LICENSE.md`（Cesium Apache-2.0 原文）须在库。
+- **打包机制**：源码清单复用 `git ls-files`（cached + others/exclude-standard），
+  自动排除 tmp/、备份、日志；再注入 lib/cesium 全目录与包内 `lib/cesium/LICENSE.md`；
+  run.sh/.bat 保留可执行位。包内附 `RELEASE.txt`（版本/时间/许可说明）。
+- **发布步骤**（仅在定稿且质量门全过后）：先 `git tag vX.Y.Z && git push origin vX.Y.Z`，
+  再 `gh release create vX.Y.Z tmp/release/CalcEclipses-vX.Y.Z.zip --title ... --notes ...`；
+  发布后核对 Assets 可下载、SHA256 与本地一致。
+- **许可合规**：项目 MIT（LICENSE），CesiumJS Apache-2.0 原文随包置于
+  `lib/cesium/LICENSE.md`；pymeeus（LGPLv3）仅生成期独立进程调用，不入包。

@@ -39,6 +39,10 @@
 
 ## 快速开始
 
+> **无需安装、免 npm**：到 [Releases](https://github.com/ayoblock/CalcEclipses/releases)
+> 下载最新完整包（含 Cesium），解压后 Linux/macOS 运行 `./run.sh`、Windows 双击 `run.bat`
+> 即可离线使用。以下方式适合想从源码运行的人。
+
 ### 方式一：一键启动（推荐）
 
 ```bash
