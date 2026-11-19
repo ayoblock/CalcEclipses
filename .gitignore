@@ -1,0 +1,21 @@
+# ---- 不入库：本地运行产物与工作区 ----
+lib/cesium/
+tmp/
+.workbuddy/
+server.log
+*.log
+.DS_Store
+
+# ---- 数据备份（开发过程产物） ----
+data/*.bak*
+data/*.bak.*
+
+# ---- Python ----
+__pycache__/
+*.pyc
+.venv/
+
+# ---- Node ----
+node_modules/
+package-lock.json
+npm-shrinkwrap.json

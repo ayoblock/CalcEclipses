@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>历代日食 · 古籍与星历比对</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='%230c0c0e' stroke='%23d9b16a' stroke-width='1.4'/%3E%3Ccircle cx='19' cy='14' r='11' fill='%230c0c0e'/%3E%3C/svg%3E">
+<!-- Cesium 本地化（lib/cesium）：不再依赖 CDN。此前 CDN Workers 动态导入失败
+     会导致 "An error occurred while rendering. Rendering has stopped"，
+     影带/轨迹/食甚全部消失。 -->
+<script>window.CESIUM_BASE_URL = 'lib/cesium/';</script>
+<script src="lib/cesium/Cesium.js"></script>
+<link rel="stylesheet" href="lib/cesium/Widgets/widgets.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<!-- ══════════ 顶栏 ══════════ -->
+<header class="topbar">
+  <div class="brand">
+    <span class="mark">◎</span>
+    <div class="brand-txt">
+      <div class="title" id="appTitle">历代日食</div>
+      <div class="sub" id="appSubtitle">古籍记载 ↔ 现代星历比对</div>
+    </div>
+  </div>
+  <nav class="dyn-nav" id="dynastyButtons" aria-label="朝代切换"></nav>
+  <div class="top-actions">
+    <button class="ghost-btn" id="methodBtn">放大详情</button>
+  </div>
+</header>
+
+<!-- ══════════ 三栏 ══════════ -->
+<div class="grid">
+
+  <!-- 左栏：筛选 + 列表 -->
+  <aside class="pane left">
+    <div class="left-head">
+      <div class="lh-title">条目筛选</div>
+      <div class="tabs" id="typeTabs"></div>
+      <div class="chips" id="flagChips"></div>
+      <div class="search-wrap">
+        <input id="searchInput" type="search" placeholder="检索原文 / 日期 / 纪年 / 出处" autocomplete="off">
+      </div>
+    </div>
+    <div class="list" id="list"></div>
+    <div class="left-foot">
+      <div class="lf-row">
+        <span>载入数据</span>
+        <label class="file-btn">选择 JSON<input id="importFile" type="file" accept=".json,application/json"></label>
+      </div>
+      <div class="lf-note">已载入 <b id="loadedCount">0</b> 条 · 按日期升序</div>
+    </div>
+  </aside>
+
+  <!-- 中栏：地球 + 时间轴 -->
+  <main class="pane stage" id="stage">
+    <div id="cesium"></div>
+    <div class="vignette"></div>
+    <div class="top-chip" id="topChip">载入中…</div>
+
+    <div class="legend">
+      <div class="lg-title" id="legendTitle">月影（越黑＝遮得越多）</div>
+      <div class="lg"><span class="sw" style="border-color:#b8452f"></span>全食</div>
+      <div class="lg"><span class="sw" style="border-color:#cfa03a"></span>环食</div>
+      <div class="lg"><span class="sw" style="border-color:#4f7fa3"></span>偏食</div>
+      <div class="lg"><span class="sw line" style="border-color:#efeadb"></span>食带中心线</div>
+      <div class="lg"><span class="sw" style="border-color:#d9c9a8"></span>观测地（点一下跳条）</div>
+      <div class="lg"><span class="sw" style="border-color:#7d6a4a"></span>食甚中心</div>
+      <div class="lg lg-note" id="legendNote" style="display:none">汉代无影带几何，轨迹为按影心与食分构造的示意路径，非精确计算</div>
+    </div>
+
+    <div class="view-modes">
+      <button id="modeCenter" class="vm" title="回到食甚中心">食基点</button>
+      <button id="modeSpin" class="vm" title="自动旋转">自转</button>
+      <button id="modeReset" class="vm" title="复位视角">复位</button>
+    </div>
+
+    <div class="playbar">
+      <button class="play" id="playBtn" title="播放 / 暂停">
+        <svg id="playIcon" width="10" height="12" viewBox="0 0 10 12"><path d="M0 0l10 6-10 6z" fill="#d9b16a"/></svg>
+      </button>
+      <div class="scrub">
+        <input type="range" id="timeRange" min="0" max="1000" step="1" value="500">
+        <div class="ticks" id="ticks"></div>
+      </div>
+      <div class="readout">
+        <b id="offsetLabel">食甚</b>
+        <span id="clockLabel">—</span>
+      </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+  </main>
+
+  <!-- 右栏：详情 -->
+  <aside class="pane right" id="detail">
+    <div class="empty-detail">选择左栏条目查看详情</div>
+  </aside>
+</div>
+
+<!-- ══════════ 方法论弹窗 ══════════ -->
+<div class="modal" id="modal">
+  <div class="sheet">
+    <div class="h">
+      <div class="ht" id="modalTitle">详情</div>
+      <button class="x" id="modalClose">关闭</button>
+    </div>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<!-- ══════════ 脚本（顺序：依赖 → 数据 → 逻辑） ══════════ -->
+<script src="js/assets.js"></script>
+<script src="data/han.js"></script>
+<script src="data/jin.js"></script>
+<script src="data/song.js"></script>
+<script src="data/tang.js"></script>
+<!-- 新增朝代：在此加一行 <script src="data/你的朝代key.js"></script> -->
+<script src="js/registry.js"></script>
+<script src="js/calendar.js"></script>
+<script src="js/renderers.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>
